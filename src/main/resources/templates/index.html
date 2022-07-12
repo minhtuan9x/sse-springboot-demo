@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Server-Sent Events Progress Bar Example</title>
+    <!-- load the bootstrap stylesheet -->
+    <link href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" media="all" rel="stylesheet"
+          type="text/css"/>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+
+        function log(msg) {
+            let html = '<div class="progress">\n' +
+                '<div class="progress-bar progress-bar-striped progress-bar-animated" style="width:' + msg + '%">' + msg + '%</div>\n' +
+                '</div>'
+            $("#logElem").html(html);
+        }
+
+        function start() {
+            return handleSubmit();
+        }
+
+        const handleSubmit = () => {
+            //event.preventDefault();
+            let url = "/upload";
+            const eventSource = new EventSource("/events");
+            let guidValue = null;
+
+            eventSource.addEventListener("GUI_ID", (event) => {
+                guidValue = JSON.parse(event.data);
+                console.log(`Guid from server: ${guidValue}`);
+
+                eventSource.addEventListener(guidValue, (event) => {
+                    //execute progress
+                    let result;
+                    try {
+                        result = JSON.parse(event.data);
+                    } catch (e) {
+                        result = event.data
+                    }
+                    console.log(result)
+                    log(result)
+                });
+
+                $.ajax({
+                    url: url + "?uuid=" + guidValue,
+                    method: "GET",
+                    success: e => {
+                        alert("done!")
+                    },
+                    error: e => {
+                        alert("error!")
+                    }
+                })
+
+            });
+
+            eventSource.onerror = (event) => {
+                if (this.readyState === EventSource.CONNECTING) {
+                    log("Connection is interrupted, connecting ...");
+                } else {
+                    log("Error, state: " + this.readyState);
+                    eventSource.close();
+                }
+                //set 0
+            };
+
+            eventSource.onopen = () => {
+                console.log("connection opened");
+            };
+        };
+
+    </script>
+</head>
+
+<body>
+
+<div class="container">
+    <button onclick="start()">Start</button>
+    <!--    <div><img src="/loader.gif"></div>-->
+    <div id="logElem"></div>
+</div>
+
+</body>
+
+</html>
